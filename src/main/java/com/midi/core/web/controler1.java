@@ -1,36 +1,31 @@
 package com.midi.core.web;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
+
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 
 import javax.annotation.PostConstruct;
 import javax.servlet.http.HttpServletResponse;
 
-import org.apache.poi.ss.usermodel.Row;
-import org.apache.poi.ss.usermodel.Sheet;
-import org.apache.poi.ss.usermodel.Workbook;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.ModelAndView;
 
-import com.midi.core.metier.Scritere;
-import com.midi.core.metier.critere;
 import com.midi.core.metier.employee;
 import com.midi.core.metier.evaluation;
-import com.midi.core.metier.role;
 import com.midi.core.service.Extract;
-import com.midi.core.serviceImp.ExtractImpl;
 import com.midi.util.ExportExcel;
 
 @Controller
@@ -50,14 +45,14 @@ public class controler1 {
 	}
 	
 	
-	@RequestMapping("/")
+	@RequestMapping("/evaluation")
 	public String extractEval(Model model) throws IOException {
 		
 	    model.addAttribute("evaluation",eval);
 		return "interface1";
 	}
 	
-	@RequestMapping("/emp")
+	@RequestMapping("/employee")
 	public ModelAndView extractEmp() {
 		ModelAndView model = new ModelAndView();
 
@@ -68,8 +63,7 @@ public class controler1 {
 	}
 	
 	@RequestMapping("/export/{id}")
-	public void exportExcel(@PathVariable String id,HttpServletResponse response) throws Exception {
-		System.out.println("contorl");
+	public ResponseEntity<ByteArrayResource> exportExcel(@PathVariable String id,HttpServletResponse response) throws Exception {
 		employee emp =null;
 		for (employee item : emps) {
 			if (item.getMatricule().equals(id)) {
@@ -78,18 +72,38 @@ public class controler1 {
 			}
 		}
 		ExportExcel Exporter = new ExportExcel(eval,emp);
-		Exporter.export(response);
+		byte[] file = Exporter.export();
+		return ResponseEntity.ok()
+		.contentType(MediaType.parseMediaType("application/octet-stream"))
+		.header(HttpHeaders.CONTENT_DISPOSITION,"attachement; filename="+emp.getNom()+"_"+emp.getPrenom()+".xlsx")
+		.body(new ByteArrayResource(file));
 	}
 
 	
 	@RequestMapping("/exportAll")
-	public void exportAll(@ModelAttribute("emps") ArrayList<employee> emps,HttpServletResponse response) throws Exception {
-		System.out.println(emps.size());
+	public ResponseEntity<ByteArrayResource> exportAll(@ModelAttribute("emps") ArrayList<employee> emps,HttpServletResponse response) throws Exception {
+		emps = (ArrayList<employee>) this.emps;
+		ByteArrayOutputStream baos = new ByteArrayOutputStream();
+		ZipOutputStream zipFile = new ZipOutputStream(baos);
+		
+		baos.toByteArray();
 		for (employee emp : emps) {
-			System.out.println("controller 2");
-			ExportExcel Exporter = new ExportExcel(extractService.extractEval(),emp);
-			Exporter.export(response);
+			ExportExcel Exporter = new ExportExcel(eval,emp);
+			byte[] file = Exporter.export();
+
+	        ZipEntry entry = new ZipEntry(emp.getNom()+"_"+emp.getPrenom()+".xlsx");
+	        entry.setSize(file.length);
+	        zipFile.putNextEntry(entry);
+	        zipFile.write(file);
+	        zipFile.closeEntry();
 		}
+		zipFile.finish();
+		zipFile.flush();
+		zipFile.close();
+		return ResponseEntity.ok()
+		.contentType(MediaType.parseMediaType("APPLICATION/DOWNLOAD"))
+		.header(HttpHeaders.CONTENT_DISPOSITION,"attachement; filename=files.zip")
+		.body(new ByteArrayResource(baos.toByteArray()));
 	}
 
 }

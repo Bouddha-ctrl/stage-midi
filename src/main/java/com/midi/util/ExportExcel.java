@@ -1,15 +1,9 @@
 package com.midi.util;
 
-import java.io.File;
-import java.io.FileOutputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-
-import javax.servlet.ServletOutputStream;
-import javax.servlet.http.HttpServletResponse;
 
 import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.FillPatternType;
@@ -126,24 +120,16 @@ public class ExportExcel {
 			
 		
 	}
-	public void writeHeader(HttpServletResponse response) {
-		response.setContentType("application/octet-stream");
-		String headerKey = "Content-Disposition";
-		String headerValue = "attachement; filename="+emp.getNom()+"_"+emp.getPrenom()+".xlsx";
-		response.setHeader(headerKey, headerValue);
-	}
+
 	
-	public void export(HttpServletResponse response) throws IOException {
+	public byte[] export() throws IOException {
 		
-		//File myFile = new File("C:\\Users\\buddha\\Desktop\\evaluations");
-		writeHeader(response);
 		writeHeaderRow();
 		writeDataRows();
-        //FileOutputStream outputStream = new FileOutputStream(myFile);
-		ServletOutputStream outputStream = response.getOutputStream();
 
-		workbook.write(outputStream);
-		workbook.close();
-		outputStream.close();
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+
+        workbook.write(baos);
+        return baos.toByteArray();
 	}
 }
