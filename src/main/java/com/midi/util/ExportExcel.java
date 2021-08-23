@@ -45,7 +45,7 @@ public class ExportExcel {
 		
 	}
 	
-	private void writeDataRows(){
+	private void writeDataRows() throws Exception{
 		
 		role role = null;
 		
@@ -53,6 +53,9 @@ public class ExportExcel {
 			if (item.getNom().equals(emp.getRole())) {
 				role = item; break;
 			}
+		}
+		if(role==null) {
+			throw new Exception("Le role "+emp.getRole()+" n'existe pas");
 		}
 		
 		int rowCount = 1;
@@ -122,7 +125,7 @@ public class ExportExcel {
 	}
 
 	
-	public byte[] export() throws IOException {
+	public byte[] export() throws Exception {
 		
 		writeHeaderRow();
 		writeDataRows();

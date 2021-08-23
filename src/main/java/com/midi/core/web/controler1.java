@@ -13,6 +13,7 @@ import org.springframework.http.ResponseEntity;
 
 import javax.annotation.PostConstruct;
 import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ByteArrayResource;
@@ -20,9 +21,15 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.servlet.ModelAndView;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.midi.core.metier.employee;
 import com.midi.core.metier.evaluation;
 import com.midi.core.service.Extract;
@@ -40,30 +47,34 @@ public class controler1 {
 	
 	@PostConstruct
 	public void init() {
-		eval = extractService.extractEval();
-		emps = extractService.extractEmp();
+		eval = null;
+		emps = new ArrayList<employee>();
 	}
 	
 	
 	@RequestMapping("/evaluation")
-	public String extractEval(Model model) throws IOException {
-		
+	public String extractEval(Model model,HttpSession session) throws IOException {
+		getsessionContent(session);
 	    model.addAttribute("evaluation",eval);
 		return "interface1";
 	}
 	
 	@RequestMapping("/employee")
-	public ModelAndView extractEmp() {
-		ModelAndView model = new ModelAndView();
+	public String extractEmp(Model model,HttpSession session) {
 
-	    model.addObject("emps",emps);
+		getsessionContent(session);
+		if (eval == null) {
+		    model.addAttribute("checkEval",0);
+		}else {
+		    model.addAttribute("checkEval",1);
+		}
+	    model.addAttribute("emps",emps);
 
-	    model.setViewName("emp");
-	    return model;
+	    return "emp";
 	}
 	
-	@RequestMapping("/export/{id}")
-	public ResponseEntity<ByteArrayResource> exportExcel(@PathVariable String id,HttpServletResponse response) throws Exception {
+	@RequestMapping("employee/export/{id}")
+	public ResponseEntity<ByteArrayResource> exportOne(@PathVariable String id,HttpServletResponse response,Model model) throws Exception {
 		employee emp =null;
 		for (employee item : emps) {
 			if (item.getMatricule().equals(id)) {
@@ -71,39 +82,69 @@ public class controler1 {
 				break;
 			}
 		}
+		byte[] file = null;
 		ExportExcel Exporter = new ExportExcel(eval,emp);
-		byte[] file = Exporter.export();
+		try {
+			file = Exporter.export();
+		}catch(Exception e) {
+			model.addAttribute("error",e.getMessage());
+		}
 		return ResponseEntity.ok()
 		.contentType(MediaType.parseMediaType("application/octet-stream"))
 		.header(HttpHeaders.CONTENT_DISPOSITION,"attachement; filename="+emp.getNom()+"_"+emp.getPrenom()+".xlsx")
 		.body(new ByteArrayResource(file));
 	}
 
-	
-	@RequestMapping("/exportAll")
-	public ResponseEntity<ByteArrayResource> exportAll(@ModelAttribute("emps") ArrayList<employee> emps,HttpServletResponse response) throws Exception {
-		emps = (ArrayList<employee>) this.emps;
+
+	@ResponseBody
+	@RequestMapping(value="/employee/exportAll", method = RequestMethod.POST, produces="application/json")
+	public ResponseEntity<ByteArrayResource> export(@RequestBody String body) throws Exception {
+		
+		ObjectMapper mapper = new ObjectMapper(); 
+		JsonNode node = null; 
+		List<String> Mats = new ArrayList<String>();
+		try { node = mapper.readTree(body);
+		ArrayNode arrayNode = (ArrayNode) node.get("value");
+		arrayNode.forEach(jsonNode -> Mats.add(jsonNode.asText())); 
+		}catch(Exception ex) {
+			System.out.println("jackson error");
+			ex.getStackTrace(); 
+		}
+		
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
 		ZipOutputStream zipFile = new ZipOutputStream(baos);
 		
-		baos.toByteArray();
-		for (employee emp : emps) {
-			ExportExcel Exporter = new ExportExcel(eval,emp);
-			byte[] file = Exporter.export();
 
-	        ZipEntry entry = new ZipEntry(emp.getNom()+"_"+emp.getPrenom()+".xlsx");
-	        entry.setSize(file.length);
-	        zipFile.putNextEntry(entry);
-	        zipFile.write(file);
-	        zipFile.closeEntry();
+		for (employee emp : emps) {
+			if(Mats.contains(emp.getMatricule())){
+				ExportExcel Exporter = new ExportExcel(eval,emp);
+				byte[] file = Exporter.export();
+
+		        ZipEntry entry = new ZipEntry(emp.getNom()+"_"+emp.getPrenom()+".xlsx");
+		        entry.setSize(file.length);
+		        zipFile.putNextEntry(entry);
+		        zipFile.write(file);
+		        zipFile.closeEntry();
+			}
+			
 		}
 		zipFile.finish();
 		zipFile.flush();
 		zipFile.close();
 		return ResponseEntity.ok()
-		.contentType(MediaType.parseMediaType("APPLICATION/DOWNLOAD"))
-		.header(HttpHeaders.CONTENT_DISPOSITION,"attachement; filename=files.zip")
-		.body(new ByteArrayResource(baos.toByteArray()));
+				.contentType(MediaType.parseMediaType("APPLICATION/DOWNLOAD"))
+				.header(HttpHeaders.CONTENT_DISPOSITION,"attachement; filename=files.zip")
+				.body(new ByteArrayResource(baos.toByteArray()));
 	}
+	
 
+	
+	public void getsessionContent(HttpSession session) {
+		if(session.getAttribute("emps") != null) {
+			emps = (List<employee>) session.getAttribute("emps");
+		}
+		if(session.getAttribute("eval") != null) {
+			eval = (evaluation) session.getAttribute("eval");
+		}
+	}
 }

@@ -9,14 +9,18 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import javax.servlet.http.HttpServletResponse;
 
+import org.apache.poi.hssf.usermodel.HSSFWorkbook;
+import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.midi.core.metier.*;
 import com.midi.core.service.Extract;
@@ -26,56 +30,64 @@ import com.midi.util.ExportExcel;
 public class ExtractImpl implements Extract{
 
 	@Override
-	public ArrayList<employee> extractEmp() {
+	public ArrayList<employee> extractEmp(MultipartFile file) throws Exception {
 		ArrayList<employee> emps =  new ArrayList<employee>();
+
+	    String fileName = file.getOriginalFilename();
+
+		int last = fileName.lastIndexOf(".");
 		
-		String path = "C:\\Users\\buddha\\Desktop\\stage\\employee.xlsx" ;
-		   FileInputStream file = null;
-			try {
-				file = new FileInputStream(new File(path));
-			} catch (FileNotFoundException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+		String type = fileName.substring(last+1);
+
+		Workbook workbook = null;
+		try {
+			if(type.equals("xls")) {
+				workbook = new HSSFWorkbook(file.getInputStream());
+			}else if (type.equals("xlsx")) {
+				workbook = new XSSFWorkbook(file.getInputStream());
+			}else {
+				throw new Exception("Invalide type of file (.xls/.xlsx only)");
 			}
-		      Workbook workbook = null;
-			try {
-				workbook = new XSSFWorkbook(file);
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+			
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		Sheet sheet = workbook.getSheetAt(0);
+		int i = 0;
+		for (Row row : sheet)  {
+			i = row.getRowNum();
+			if (i>0) {
+				try {
+					employee emp = new employee(row.getCell(0).toString(),row.getCell(1).toString(),row.getCell(2).toString(),new SimpleDateFormat("dd-MMM-yyyy", Locale.ENGLISH).parse(row.getCell(3).toString()),row.getCell(4).toString());
+					emps.add(emp);
+		    	 } catch (ParseException e) {
+					System.out.println(e.getMessage());
+					e.printStackTrace();
+		    	 }
 			}
-		      Sheet sheet = workbook.getSheetAt(0);
-		      int i = 0;
-		      for (Row row : sheet)  {
-			      i = row.getRowNum();
-			      if (i>0) {
-			    	  try {
-						employee emp = new employee(row.getCell(0).toString(),row.getCell(1).toString(),row.getCell(2).toString(),new SimpleDateFormat("dd-MMM-yyyy", Locale.ENGLISH).parse(row.getCell(3).toString()),row.getCell(4).toString());
-						emps.add(emp);
-			    	  } catch (ParseException e) {
-						System.out.println(e.getMessage());
-						e.printStackTrace();
-			    	  }
-			      }
-		      }
-		return emps;
+	     }
+		 return emps;
 	}
 
 	@Override
-	public evaluation extractEval() {
-		String path = "C:\\Users\\buddha\\Desktop\\stage\\example1.xlsx" ;
-	      FileInputStream file = null;
+	public evaluation extractEval(MultipartFile  file) throws Exception{
+		String fileName = file.getOriginalFilename();
+
+		int last = fileName.lastIndexOf(".");
+		
+		String type = fileName.substring(last+1);
+
+	    Workbook workbook = null;
 		try {
-			file = new FileInputStream(new File(path));
-		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-	      Workbook workbook = null;
-		try {
-			workbook = new XSSFWorkbook(file);
+			if(type.equals("xls")) {
+				workbook = new HSSFWorkbook(file.getInputStream());
+			}else if (type.equals("xlsx")) {
+				workbook = new XSSFWorkbook(file.getInputStream());
+			}else {
+				throw new Exception("Invalide type of file (.xls/.xlsx only)");
+			}
+			
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	      Sheet sheet = workbook.getSheetAt(0);

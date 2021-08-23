@@ -12,7 +12,7 @@
 </head>
 <body>
 	<header>
-		<nav class="navbar navbar-expand-lg navbar-light bg-light">
+		<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
 		  <div class="container-fluid">
 		    <a class="navbar-brand" href="#">Eval</a>
 		    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavDropdown" aria-controls="navbarNavDropdown" aria-expanded="false" aria-label="Toggle navigation">
@@ -38,19 +38,54 @@
 		<table class="table">
 		<thead>
 			<tr>
-				<th>Matricule</th><th>Nom</th><th>Prenom</th><th>Date debut</th><th>role</th><th></th>
+				<th>Matricule</th>
+				<th>Nom</th>
+				<th>Prenom</th>
+				<th>Date debut</th>
+				<th>role</th>
+				<th >
+ 					<button class="btn btn-sm btn-secondary" onclick="checkAllorNone()">All</button> 
+				</th>
+				<th></th>
 			</tr>
 		</thead>
 		<tbody>
 			<c:forEach var="emp" items="${emps}">
 				<tr>
-					<td>${emp.matricule}</td><td>${emp.nom}</td><td>${emp.prenom}</td><td>${emp.date_debut}</td><td>${emp.role}</td><th><a href="${pageContext.request.contextPath}/export/${emp.matricule}"><button class="btn btn-secondary" id="export">Export</button></a></th>
+					<td>${emp.matricule}</td>
+					<td>${emp.nom}</td>
+					<td>${emp.prenom}</td>
+					<td>${emp.date_debut}</td>
+					<td>${emp.role}</td>
+					<td ><input name="employee" type="checkbox" value="${emp.matricule}"/></td>
+					<td><c:if test = "${checkEval == 1}"><a href="${pageContext.request.contextPath}/employee/export/${emp.matricule}"><button class="btn btn-secondary" id="export" >Export</button></a></c:if></td>
 				</tr>
 			</c:forEach>
 		</tbody>
 		</table>
-			<a href="${pageContext.request.contextPath}/exportAll"><button class="btn btn-secondary" onclick="eh()" type="submit">Export all</button></a>
-		
+					<c:if test = "${checkEval == 1}"><a><button class="btn btn-secondary" onclick="getCheckedCheckboxesFor('employee')" type="submit">Export all</button></a></c:if>
+	</div>
+	
+	
+	<!-- Button trigger modal -->
+	<button hidden="true" id="ModalTrigger" type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#exampleModal">
+	</button>
+	<!-- Modal -->
+	<div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+	  <div class="modal-dialog">
+	    <div class="modal-content">
+	      <div class="modal-header">
+	        <h5 class="modal-title" id="exampleModalLabel">Action failed</h5>
+	        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+	      </div>
+	      <div class="modal-body">
+	        0 Employee selected
+	      </div>
+	      <div class="modal-footer">
+	        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+	      </div>
+	    </div>
+	  </div>
 	</div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM" crossorigin="anonymous"></script>
 <script src="<c:url value="/resources/js/script.js" />"></script>

@@ -1,5 +1,7 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8"
     pageEncoding="UTF-8"%>
+<%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c"%>
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -11,7 +13,7 @@
 <body>
 
 	<header>
-		<nav class="navbar navbar-expand-lg navbar-light bg-light">
+		<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
 		  <div class="container-fluid">
 		    <a class="navbar-brand" href="#">Eval</a>
 		    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavDropdown" aria-controls="navbarNavDropdown" aria-expanded="false" aria-label="Toggle navigation">
@@ -33,9 +35,16 @@
 		  </div>
 		</nav>
 	</header>
-	<div class="container ">
+	<div class="container mt-3">
+	
+		<c:if test = "${error != null}">
+			<div class="alert alert-danger" role="alert">
+			  ${error}
+			</div>
+		</c:if>
+	
 		<form class="row g-3" enctype="multipart/form-data" method="POST" action="${pageContext.request.contextPath}/setting/add">
-			<div class="input-group mb-3">
+			<div class="input-group mb-2">
 			  <label class="input-group-text" >Criteres</label>
 			  <input type="file" id="CritExcel" name="CritExcel" class="form-control form-control-sm"/>
 			</div>
